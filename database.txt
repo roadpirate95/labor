@@ -1,0 +1,68 @@
+Задача 1.
+
+CREATE OR REPLACE FUNCTION select_orders_by_item_name(name_position VARCHAR)
+	RETURNS TABLE(
+	    order_id INT,
+	    customer VARCHAR,
+	    items_count INT
+	)
+
+	AS $$ RETURN (
+		SELECT Orders.row_id as order_id, Customers.name as customer, count(order_id) as items_count
+		FROM Customers
+		JOIN Orders JOIN ON Customers.row_id = Orders.customer_id
+		JOIN OrderItems ON Orders.row_id = OrderItems.order_id
+		WHERE OrderItems.name = name_position
+		GROUP BY Orders.row_id, Customers.name
+	) $$;
+
+Задача 2.
+
+CREATE FUNCTION calculate_total_price_for_orders_group(num int)
+RETURNS FLOAT
+AS $$
+BEGIN
+    DECLARE total INT
+
+    IF ((SELECT customer_id FROM Orders WHERE row_id = num) IS NULL)
+
+        BEGIN
+            with recursive orders_(row_id, parent_id, group_name) as (
+            select row_id, parent_id, group_name from Orders where row_id = num
+                union all
+            select O.row_id, O.parent_id, O.group_name
+            from Orders O
+            join orders_ on orders_.row_id = O.parent_id
+            )
+            SELECT total = sum(price) from OrderItems
+            JOIN OrderItems ON orders_.row_id = OrderItems.order_id
+        END;
+
+    ELSE
+
+        BEGIN
+            SELECT total = sum(price) from OrderItems
+            WHERE order_id = num
+        END;
+
+    RETURN total
+END $$;
+
+
+Задача 3.
+
+SELECT Customers.Name
+FROM Customers
+WHERE Customers.row_id NOT IN (
+	SELECT Customers.row_id
+	FROM Customers
+	JOIN Orders JOIN ON Customers.row_id = Orders.customer_id
+	JOIN OrderItems ON Orders.row_id = OrderItems.order_id
+	WHERE OrderItems.order_id NOT IN (
+		SELECT OrderItems.order_id
+		FROM OrderItems
+		WHERE OrderItems.name = 'Кассовый аппарат'
+	) AND YEAR(Orders.registered_at) = 2020
+
+	GROUP BY Customers.row_id
+)
