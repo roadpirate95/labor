@@ -3,6 +3,9 @@ import csv
 
 def main():
 
+    """Функция считавает строки из файла абоненты.csv и генерирует два новых файла
+    Начисления_абоненты.csv и Начисления_дома.csv"""
+
     with open('абоненты.csv', encoding='utf-8-sig') as file_1:
         reader = csv.DictReader(file_1, delimiter=';')
         results = [item for item in reader]
